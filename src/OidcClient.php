@@ -13,6 +13,7 @@ use Exception;
 use InvalidArgumentException;
 use LogicException;
 use phpseclib3\Crypt\RSA;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,6 +43,7 @@ class OidcClient implements OidcClientInterface
     protected OidcUrlFetcher $urlFetcher,
     protected OidcSessionStorage $sessionStorage,
     protected OidcJwtHelper $jwtHelper,
+    protected LoggerInterface $logger,
     protected string $wellKnownUrl,
     private readonly ?int $wellKnownCacheTime,
     private readonly string $clientId,
@@ -68,6 +70,7 @@ class OidcClient implements OidcClientInterface
 
   public function authenticate(Request $request): OidcTokens
   {
+    $this->logger->info('Starting authentication');
     // Check whether the request has an error state
     if ($request->request->has('error')) {
       throw new OidcAuthenticationException(sprintf('OIDC error: %s. Description: %s.',
@@ -429,7 +432,14 @@ class OidcClient implements OidcClientInterface
       ]);
     }
 
+    $this->logger->info('calling token endpoint', [
+      'endpoint' => $this->getTokenEndpoint(),
+      'params'   => $params,
+      'headers'  => $headers,
+    ]);
+
     $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    $this->logger->info('Retrieve the content from the specified url', $jsonToken);
 
     // Throw an error if the server returns one
     if (isset($jsonToken->error)) {
