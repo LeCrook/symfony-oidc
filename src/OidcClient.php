@@ -22,7 +22,6 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * This class implements the Oidc protocol.
@@ -45,7 +44,6 @@ class OidcClient implements OidcClientInterface
     protected OidcSessionStorage $sessionStorage,
     protected OidcJwtHelper $jwtHelper,
     protected LoggerInterface $logger,
-    protected HttpClientInterface $httpClient,
     protected string $wellKnownUrl,
     private readonly ?int $wellKnownCacheTime,
     private readonly string $clientId,
@@ -440,15 +438,8 @@ class OidcClient implements OidcClientInterface
       'headers'  => $headers,
     ]);
 
-    $headers['Content-Type'] = 'application/json';
-    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
-      'headers' => $headers,
-      'body'    => $params,
-    ]);
-    $jsonToken = json_decode($response->getContent());
-    $formattedResponse = json_decode($response->getContent(), true);
-//    $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
-    $this->logger->info('Retrieve the content from the specified url', $formattedResponse);
+    $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    $this->logger->info('Retrieve the content from the specified url', (array)$jsonToken);
 
     // Throw an error if the server returns one
     if (isset($jsonToken->error)) {
