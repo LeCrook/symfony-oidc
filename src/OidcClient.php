@@ -419,7 +419,7 @@ class OidcClient implements OidcClientInterface
     // Use basic auth if offered
     $headers = [];
     if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
-      $headers                 = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
+//      $headers                 = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
       $headers['accept']       = 'application/json';
       $headers['Content-Type'] = 'application/json';
     }
