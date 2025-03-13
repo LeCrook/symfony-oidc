@@ -22,6 +22,7 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * This class implements the Oidc protocol.
@@ -44,6 +45,7 @@ class OidcClient implements OidcClientInterface
     protected OidcSessionStorage $sessionStorage,
     protected OidcJwtHelper $jwtHelper,
     protected LoggerInterface $logger,
+    protected HttpClientInterface $httpClient,
     protected string $wellKnownUrl,
     private readonly ?int $wellKnownCacheTime,
     private readonly string $clientId,
@@ -399,13 +401,11 @@ class OidcClient implements OidcClientInterface
     ?string $refreshToken = null): OidcTokens
   {
     $params = [
-      'grant_type'    => $grantType,
-      'client_id'     => $this->clientId,
-      'client_secret' => $this->clientSecret,
+      'grant_type' => $grantType,
     ];
 
     if (null !== $code) {
-      $params['code'] = $code;
+      $params['code'] = urldecode($code);
     }
 
     if (null !== $redirectUrl) {
@@ -418,11 +418,11 @@ class OidcClient implements OidcClientInterface
 
     // Use basic auth if offered
     $headers = [];
-    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
-      $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
-      unset($params['client_id']);
-      unset($params['client_secret']);
-    }
+    //    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
+    //      $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
+    //      unset($params['client_id']);
+    //      unset($params['client_secret']);
+    //    }
 
     if ($codeVerifier = $this->sessionStorage->getCodeVerifier()) {
       unset($params['client_secret']);
@@ -438,8 +438,18 @@ class OidcClient implements OidcClientInterface
       'headers'  => $headers,
     ]);
 
-    $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
-    $this->logger->info('Retrieve the content from the specified url', (array)$jsonToken);
+    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
+      'headers' => [
+        'accept'       => 'application/json',
+        'Content-Type' => 'application/json',
+      ],
+      'body' => $params,
+    ]);
+    $jsonToken         = json_decode($response->getContent());
+    $formattedResponse = json_decode($response->getContent(), true);
+
+    // $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    $this->logger->info('Retrieve the content from the specified url', $formattedResponse);
 
     // Throw an error if the server returns one
     if (isset($jsonToken->error)) {

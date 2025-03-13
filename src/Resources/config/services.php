@@ -12,6 +12,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return function (ContainerConfigurator $configurator): void {
@@ -33,6 +34,7 @@ return function (ContainerConfigurator $configurator): void {
       service(HttpUtils::class),
       service(CacheInterface::class)->nullOnInvalid(),
       service(LoggerInterface::class),
+      service(HttpClientInterface::class),
     ])
     ->abstract()
     ->set(DrensoOidcExtension::CLIENT_LOCATOR_ID, OidcClientLocator::class)
