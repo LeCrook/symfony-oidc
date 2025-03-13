@@ -418,11 +418,11 @@ class OidcClient implements OidcClientInterface
 
     // Use basic auth if offered
     $headers = [];
-    //    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
-    //      $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
-    //      unset($params['client_id']);
-    //      unset($params['client_secret']);
-    //    }
+    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
+      $headers                 = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
+      $headers['accept']       = 'application/json';
+      $headers['Content-Type'] = 'application/json';
+    }
 
     if ($codeVerifier = $this->sessionStorage->getCodeVerifier()) {
       unset($params['client_secret']);
@@ -439,11 +439,8 @@ class OidcClient implements OidcClientInterface
     ]);
 
     $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
-      'headers' => [
-        'accept'       => 'application/json',
-        'Content-Type' => 'application/json',
-      ],
-      'body' => $params,
+      'headers' => $headers,
+      'body'    => $params,
     ]);
     $jsonToken         = json_decode($response->getContent());
     $formattedResponse = json_decode($response->getContent(), true);
