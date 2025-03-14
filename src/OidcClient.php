@@ -405,7 +405,7 @@ class OidcClient implements OidcClientInterface
     ];
 
     if (null !== $code) {
-      $params['code'] = urldecode($code);
+      $params['code'] = $code;
     }
 
     if (null !== $redirectUrl) {
