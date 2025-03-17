@@ -95,6 +95,7 @@ class OidcClient implements OidcClientInterface
 
     // Clear session after check
     $this->sessionStorage->clearState();
+    $this->logger->info('Received code: %s', (string) $code);
 
     // Request and verify the tokens
     return $this->verifyTokens(
@@ -417,12 +418,10 @@ class OidcClient implements OidcClientInterface
     }
 
     // Use basic auth if offered
-    $headers = [];
-    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods())) {
-//      $headers                 = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
-      $headers['accept']       = 'application/json';
-      $headers['Content-Type'] = 'application/json';
-    }
+    $headers = [
+      'accept' => 'application/json',
+      'Content-Type' => 'application/json',
+    ];
 
     if ($codeVerifier = $this->sessionStorage->getCodeVerifier()) {
       unset($params['client_secret']);
@@ -438,14 +437,30 @@ class OidcClient implements OidcClientInterface
       'headers'  => $headers,
     ]);
 
-    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
-      'headers' => $headers,
-      'body'    => $params,
-    ]);
-    $jsonToken         = json_decode($response->getContent());
-    $formattedResponse = json_decode($response->getContent(), true);
+    $ch = curl_init();
 
-    // $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    curl_setopt($ch, CURLOPT_URL, $this->getTokenEndpoint());
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+
+    if ($response === false) {
+      throw new OidcAuthenticationException('Curl error: ' . curl_error($ch));
+    }
+
+    curl_close($ch);
+
+//    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
+//      'headers' => $headers,
+//      'body'    => $params,
+//    ]);
+    $jsonToken         = json_decode($response);
+    $formattedResponse = json_decode($response, true);
+
+//     $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
     $this->logger->info('Retrieve the content from the specified url', $formattedResponse);
 
     // Throw an error if the server returns one
