@@ -441,26 +441,14 @@ class OidcClient implements OidcClientInterface
       'headers'  => $headers,
     ]);
 
-    $command = sprintf(
-      'curl -X POST -H %s -d %s %s',
-      escapeshellarg(implode(' -H ', $headers)),
-      escapeshellarg(http_build_query($params)),
-      escapeshellarg($this->getTokenEndpoint()),
-    );
+    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
+      'headers' => $headers,
+      'body'    => $params,
+    ]);
+    $jsonToken         = json_decode($response->getContent());
+    $formattedResponse = json_decode($response->getContent(), true);
 
-    $response = shell_exec($command);
-    if ($response === false) {
-      throw new OidcAuthenticationException('Shell exec error');
-    }
-
-//    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
-//      'headers' => $headers,
-//      'body'    => $params,
-//    ]);
-    $jsonToken         = json_decode($response);
-    $formattedResponse = json_decode($response, true);
-
-//     $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    // $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
     $this->logger->info('Retrieve the content from the specified url', $formattedResponse);
 
     // Throw an error if the server returns one
