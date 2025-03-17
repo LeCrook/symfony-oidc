@@ -441,21 +441,17 @@ class OidcClient implements OidcClientInterface
       'headers'  => $headers,
     ]);
 
-    $ch = curl_init();
+    $command = sprintf(
+      'curl -X POST -H %s -d %s %s',
+      escapeshellarg(implode(' -H ', $headers)),
+      escapeshellarg(http_build_query($params)),
+      escapeshellarg($this->getTokenEndpoint()),
+    );
 
-    curl_setopt($ch, CURLOPT_URL, $this->getTokenEndpoint());
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    $response = curl_exec($ch);
-
+    $response = shell_exec($command);
     if ($response === false) {
-      throw new OidcAuthenticationException('Curl error: ' . curl_error($ch));
+      throw new OidcAuthenticationException('Shell exec error');
     }
-
-    curl_close($ch);
 
 //    $response = $this->httpClient->request('POST', $this->getTokenEndpoint(), [
 //      'headers' => $headers,
