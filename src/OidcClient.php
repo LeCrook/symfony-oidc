@@ -95,7 +95,7 @@ class OidcClient implements OidcClientInterface
 
     // Clear session after check
     $this->sessionStorage->clearState();
-    $this->logger->info('Received code: %s', (string) $code);
+    $this->logger->info(sprintf('Received code: %s', $code));
 
     // Request and verify the tokens
     return $this->verifyTokens(
@@ -417,11 +417,15 @@ class OidcClient implements OidcClientInterface
       $params['refresh_token'] = $refreshToken;
     }
 
+//    $headers = [];
+//    if (in_array('client_secret_basic', $this->getTokenEndpointAuthMethods(), true)) {
+//      $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientId) . ':' . urlencode($this->clientSecret))];
+//      unset($params['client_id'], $params['client_secret']);
+//    }
+
     // Use basic auth if offered
-    $headers = [
-      'accept' => 'application/json',
-      'Content-Type' => 'application/json',
-    ];
+    $headers[] = 'accept: application/json';
+    $headers[] = 'Content-Type: application/json';
 
     if ($codeVerifier = $this->sessionStorage->getCodeVerifier()) {
       unset($params['client_secret']);
