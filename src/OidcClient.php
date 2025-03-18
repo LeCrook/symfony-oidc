@@ -22,6 +22,7 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * This class implements the Oidc protocol.
@@ -43,6 +44,7 @@ class OidcClient implements OidcClientInterface
     protected OidcUrlFetcher $urlFetcher,
     protected OidcSessionStorage $sessionStorage,
     protected OidcJwtHelper $jwtHelper,
+    protected HttpClientInterface $httpClient,
     protected string $wellKnownUrl,
     private readonly ?int $wellKnownCacheTime,
     private readonly string $clientId,
@@ -51,9 +53,8 @@ class OidcClient implements OidcClientInterface
     private readonly string $rememberMeParameter,
     protected ?OidcWellKnownParserInterface $wellKnownParser = null,
     private readonly ?string $codeChallengeMethod = null,
-    private readonly bool $disableNonce = false,
-    private readonly LoggerInterface $logger,
-  ) {
+    private readonly bool $disableNonce = false)
+  {
     // Check for required phpseclib classes
     if (!class_exists('\phpseclib\Crypt\RSA') && !class_exists(RSA::class)) {
       throw new RuntimeException('Unable to find phpseclib Crypt/RSA.php.  Ensure phpseclib/phpseclib is installed.');
@@ -404,8 +405,6 @@ class OidcClient implements OidcClientInterface
       'client_secret' => $this->clientSecret,
     ];
 
-    $this->logger->info('requestTokens data', $params);
-
     if (null !== $code) {
       $params['code'] = $code;
     }
@@ -433,9 +432,20 @@ class OidcClient implements OidcClientInterface
       ]);
     }
 
-    $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    if (str_contains($this->getTokenEndpoint(), 'lexis.com')) {
+      $command = sprintf(
+        'curl -X POST %s %s -d \'%s\' %s',
+        sprintf('-H \'%s\'', 'accept: application/json'),
+        sprintf('-H \'%s\'', 'Content-Type: application/json'),
+        json_encode($params),
+        escapeshellarg($this->getTokenEndpoint()),
+      );
 
-    $this->logger->info('Retrieve the content from the specified url', (array)$jsonToken);
+      $response = shell_exec($command);
+      $jsonToken = json_decode($response);
+    } else {
+      $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
+    }
 
     // Throw an error if the server returns one
     if (isset($jsonToken->error)) {
