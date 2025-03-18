@@ -442,9 +442,10 @@ class OidcClient implements OidcClientInterface
     ]);
 
     $command = sprintf(
-      'curl -X POST -H %s -d %s %s',
-      escapeshellarg(implode(' -H ', $headers)),
-      escapeshellarg(http_build_query($params)),
+      'curl -X POST %s %s -d \'%s\' %s',
+      sprintf('-H \'%s\'', $headers[0]),
+      sprintf('-H \'%s\'', $headers[1]),
+      json_encode($params),
       escapeshellarg($this->getTokenEndpoint()),
     );
 
