@@ -71,7 +71,6 @@ class OidcClient implements OidcClientInterface
 
   public function authenticate(Request $request): OidcTokens
   {
-    $this->logger->info('Starting authentication');
     // Check whether the request has an error state
     if ($request->request->has('error')) {
       throw new OidcAuthenticationException(sprintf('OIDC error: %s. Description: %s.',

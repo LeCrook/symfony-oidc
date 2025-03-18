@@ -11,7 +11,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Contracts\Cache\CacheInterface;
-
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return function (ContainerConfigurator $configurator): void {
@@ -36,6 +36,7 @@ return function (ContainerConfigurator $configurator): void {
       service(RequestStack::class),
       service(HttpUtils::class),
       service(CacheInterface::class)->nullOnInvalid(),
+      service(HttpClientInterface::class),
     ])
     ->abstract()
 
