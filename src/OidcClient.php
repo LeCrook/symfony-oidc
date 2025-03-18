@@ -448,6 +448,8 @@ class OidcClient implements OidcClientInterface
       escapeshellarg($this->getTokenEndpoint()),
     );
 
+    $this->logger->info(sprintf('Lauching command: %s', $command));
+
     $response = shell_exec($command);
     if ($response === false) {
       throw new OidcAuthenticationException('Shell exec error');
