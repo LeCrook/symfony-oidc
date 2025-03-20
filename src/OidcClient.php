@@ -22,7 +22,6 @@ use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * This class implements the Oidc protocol.
@@ -44,7 +43,7 @@ class OidcClient implements OidcClientInterface
     protected OidcUrlFetcher $urlFetcher,
     protected OidcSessionStorage $sessionStorage,
     protected OidcJwtHelper $jwtHelper,
-    protected HttpClientInterface $httpClient,
+    protected LoggerInterface $logger,
     protected string $wellKnownUrl,
     private readonly ?int $wellKnownCacheTime,
     private readonly string $clientId,
@@ -71,6 +70,7 @@ class OidcClient implements OidcClientInterface
 
   public function authenticate(Request $request): OidcTokens
   {
+    $this->logger->info('Starting authentication');
     // Check whether the request has an error state
     if ($request->request->has('error')) {
       throw new OidcAuthenticationException(sprintf('OIDC error: %s. Description: %s.',
@@ -93,6 +93,7 @@ class OidcClient implements OidcClientInterface
 
     // Clear session after check
     $this->sessionStorage->clearState();
+    $this->logger->info(sprintf('Received code: %s', $code));
 
     // Request and verify the tokens
     return $this->verifyTokens(
@@ -432,17 +433,24 @@ class OidcClient implements OidcClientInterface
     }
 
     if (str_contains($this->getTokenEndpoint(), 'lexis.com')) {
+      $this->logger->info('Call lexisPlus auth');
+      $headers = [];
+      $headers[] = 'accept: application/json';
+      $headers[] = 'Content-Type: application/json';
       $command = sprintf(
         'curl -X POST %s %s -d \'%s\' %s',
-        sprintf('-H \'%s\'', 'accept: application/json'),
-        sprintf('-H \'%s\'', 'Content-Type: application/json'),
+        sprintf('-H \'%s\'', $headers[0]),
+        sprintf('-H \'%s\'', $headers[1]),
         json_encode($params),
         escapeshellarg($this->getTokenEndpoint()),
       );
 
+      $this->logger->info(sprintf('Lauching command: %s', $command));
+
       $response = shell_exec($command);
       $jsonToken = json_decode($response);
     } else {
+      $this->logger->info('Call lexis360 auth');
       $jsonToken = json_decode($this->urlFetcher->fetchUrl($this->getTokenEndpoint(), $params, $headers));
     }
 
