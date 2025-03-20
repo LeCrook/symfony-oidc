@@ -432,6 +432,12 @@ class OidcClient implements OidcClientInterface
       ]);
     }
 
+    $this->logger->info('calling token endpoint', [
+      'endpoint' => $this->getTokenEndpoint(),
+      'params'   => $params,
+      'headers'  => $headers,
+    ]);
+
     if (str_contains($this->getTokenEndpoint(), 'lexis.com')) {
       $this->logger->info('Call lexisPlus auth');
       $headers = [];
@@ -445,7 +451,7 @@ class OidcClient implements OidcClientInterface
         escapeshellarg($this->getTokenEndpoint()),
       );
 
-      $this->logger->info(sprintf('Lauching command: %s', $command));
+      $this->logger->info(sprintf('Launching command: %s', $command));
 
       $response = shell_exec($command);
       $jsonToken = json_decode($response);
